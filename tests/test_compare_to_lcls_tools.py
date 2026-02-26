@@ -12,7 +12,7 @@ class TestCompareToLCLSTools(unittest.TestCase):
         )
         self.maxDiff = None
 
-    def test_difflib(self):
+    def test_against_lcls_tools(self):
         def get_files(p):
             return [f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f))]
         def compare_files(test, original):
