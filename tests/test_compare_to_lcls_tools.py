@@ -1,6 +1,6 @@
 import slac_db.config
 import slac_db.write
-import difflib
+import yaml
 import os
 from pathlib import Path
 import unittest
@@ -10,19 +10,16 @@ class TestCompareToLCLSTools(unittest.TestCase):
         self.data_location = (
             Path(__file__).parent / "test_data"
         )
+        self.maxDiff = None
 
     def test_difflib(self):
         def get_files(p):
-            return set([f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f))])
+            return [f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f))]
         def compare_files(test, original):
             with open(test, "r") as t, open(original, "r") as o:
-                r = difflib.SequenceMatcher(None, t.readlines(), o.readlines()).ratio()
-            if r != 1.0:
-                with open(test, "r") as t, open(original, "r") as o:
-                    print(test, end=' ')
-                    print(r)
-                    for line in difflib.ndiff(t.readlines(), o.readlines()):
-                        print(line, end=' ')
+                test_dict = yaml.safe_load(t)
+                original_dict = yaml.safe_load(o)
+            self.assertEqual(test_dict, original_dict)
 
         slac_db_yaml_loc = slac_db.config.yaml()
         lcls_tools_yaml_loc = (
@@ -30,6 +27,5 @@ class TestCompareToLCLSTools(unittest.TestCase):
         )
         slac_yamls = get_files(slac_db_yaml_loc)
         lcls_yamls = get_files(lcls_tools_yaml_loc)
-        for s, l in zip(slac_yamls, lcls_yamls):
-            compare_files(slac_db_yaml_loc / s, lcls_tools_yaml_loc / l)
-        assert False
+        for s in slac_yamls:
+            compare_files(slac_db_yaml_loc / s, lcls_tools_yaml_loc / s)
