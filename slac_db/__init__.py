@@ -3,7 +3,7 @@ import yaml
 from typing import Union, Optional, Any, Dict
 import slac_db.config
 
-def get_beampath_areas(beampath)
+def get_beampath_areas(beampath):
     beampath_definition_file = os.path.join(
         slac_db.package_data(), "beampaths.yaml"
     )
@@ -34,7 +34,6 @@ def get_yaml(
             f"No such file {path}, please choose another area.",
         )
 
-
 def get_device(
     area: str = None,
     device_type: str = None,
@@ -42,7 +41,7 @@ def get_device(
 ) -> Union[None, Dict[str, Any]]:
     if area:
         try:
-            location = find_yaml_file(
+            location = get_yaml(
                 area=area,
             )
             with open(location, "r") as device_file:
