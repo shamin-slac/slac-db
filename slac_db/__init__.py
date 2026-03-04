@@ -4,6 +4,13 @@ from typing import Union, Optional, Any, Dict
 import slac_db.config
 
 def get_beampath_areas(beampath):
+    """ Creates a list of areas from beampath name.
+
+    Args:
+        beampath: Name of a beampath.
+    Returns:
+        areas: A list of areas in beampath.
+    """
     def _flatten(nested_list):
         if nested_list == []:
             return nested_list
@@ -13,12 +20,10 @@ def get_beampath_areas(beampath):
     beampath_definition_file = os.path.join(
         slac_db.package_data(), "beampaths.yaml"
     )
-    beampath_definitions = {}
-    areas = {}
     with open(beampath_definition_file, "r") as file:
         beampath_definitions = yaml.safe_load(file)
     try:
-        areas_to_create = _flatten(beampath_definitions[beampath])
+        areas = _flatten(beampath_definitions[beampath])
     except KeyError:
         raise KeyError(f"Beampath: {beampath} does not exist.")
     return areas
@@ -27,6 +32,14 @@ def get_yaml(
     area: str = None,
     beampath: Optional[str] = None,
 ) -> str:
+    """ Returns the path of the desired YAML file.
+
+    Args:
+        area: The name of the desired area.
+        beampath: The name of the desired beampath.
+    Returns:
+        path: The path to the desired YAML.
+    """
     if area:
         filename = area + ".yaml"
     if beampath:
@@ -45,6 +58,20 @@ def get_device(
     device_type: str = None,
     name: str = None,
 ) -> Union[None, Dict[str, Any]]:
+    """ Loads device data from YAML as a dictionary.
+    get_devices searches by area, area and device type,
+    and device name.
+
+    Args:
+        area: The area to search in.
+        device_type: The device type to search for.
+                     Requires area argument.
+        name: The name of the device to search for.
+              Requires area and device_type arguments.
+    Returns:
+        device_data: A dictionary containing all devices
+                     sorted by device type.
+    """
     if area:
         try:
             location = get_yaml(
