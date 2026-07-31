@@ -3,7 +3,7 @@ import slac_db.directory_service
 import slac_db.io
 import slac_db.oracle
 import slac_db.device
-from slac_db.metadata import get_wire_metadata
+from slac_db.metadata import get_wire_metadata, get_klystron_metadata
 from pykern.pkcollections import PKDict
 import yaml
 
@@ -79,10 +79,14 @@ class _Parser:
             for r in slac_db.oracle.get_all_rows():
                 if r["element"] not in self.device_names:
                     continue
+                cs_name = r["control system name"] or ""
+                # Klystron stations share keyword=LCAV with TCAVs but need
+                # their own accessor block keyed as "KLYS".
+                d_type = "KLYS" if "KLYS" in cs_name else r["keyword"]
                 yield from _meta(
                     r["element"],
-                    r["control system name"],
-                    r["keyword"],
+                    cs_name,
+                    d_type,
                 )
 
         def _get_accessors(d_type, address):
@@ -114,6 +118,44 @@ class _Parser:
 
         self.accessor_map = slac_db.io.read_dict(_ACCESSOR_YAML)
         self.accessor_meta = list(_build())
+        self._apply_klystron_accessor_overrides()
+
+    def _apply_klystron_accessor_overrides(self):
+        """Apply per-station PV overrides from klystron_metadata.yaml.
+
+        For special stations (K24_1, K20_6, etc.) some accessors must point to
+        PVs that differ from the normal KLYS:{cs_name}:{SUFFIX} pattern.
+        This removes any existing accessor entries for the affected
+        (device_name, accessor_name) pairs and inserts the override values.
+        Empty-string PV values mean the accessor is absent and are skipped.
+        """
+        overrides = get_klystron_metadata()
+        if not overrides:
+            return
+
+        # Build a set of (device_name, accessor_name) to remove, then a list
+        # of new PKDict entries to append.
+        to_remove = set()
+        to_add = []
+        for station, fields in overrides.items():
+            if station not in self.device_names:
+                continue
+            for accessor_name, cs_address in fields.items():
+                if accessor_name in ("description", "in_use"):
+                    continue
+                to_remove.add((station, accessor_name))
+                if cs_address:  # skip empty — means PV is absent
+                    to_add.append(PKDict(
+                        device_name=station,
+                        accessor_name=accessor_name,
+                        cs_address=cs_address,
+                    ))
+
+        self.accessor_meta = [
+            e for e in self.accessor_meta
+            if (e.device_name, e.accessor_name) not in to_remove
+        ]
+        self.accessor_meta.extend(to_add)
 
     def _address_map(self):
         """Create an address map where keys are PV heads

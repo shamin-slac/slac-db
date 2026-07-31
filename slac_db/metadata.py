@@ -156,6 +156,64 @@ def get_tcav_metadata(tcav_names: List[str] = [], method: callable = None, **kwa
         return {}
 
 
+def get_klystron_metadata() -> Dict[str, Dict[str, str]]:
+    """Load klystron_metadata.yaml and return per-station accessor overrides.
+
+    Returns a dict keyed by station name (e.g. 'K24_1') whose values are flat
+    dicts mapping accessor_name -> cs_address for every PV override defined in
+    klystron_metadata.yaml.
+
+    Beamcode-specific sub-dicts (keys 'beamcode1', 'beamcode2') are expanded
+    with a suffix, e.g. phase_act_pvname under beamcode1 becomes accessor
+    'phase_actual_beamcode1'.
+
+    The _pvname suffix is stripped and the remainder is used as the accessor
+    name, with underscores replacing the trailing '_pvname':
+        ampl_act_pvname  -> energy_gain (maps to lcls-live ampl_act)
+        ampl_des_pvname  -> energy_gain_des
+        phase_act_pvname -> phase_actual
+        phase_des_pvname -> phase_desired
+    Top-level empty-string values (e.g. accelerate_pvname: '') are stored as
+    accessor_name -> '' so callers know the PV is absent.
+    """
+    _PV_FIELD_TO_ACCESSOR = {
+        "ampl_act_pvname":   "energy_gain",
+        "ampl_des_pvname":   "energy_gain_des",
+        "phase_act_pvname":  "phase_actual",
+        "phase_des_pvname":  "phase_desired",
+        "accelerate_pvname": "accelerate",
+        "swrd_pvname":       "swrd",
+        "stat_pvname":       "stat",
+        "hdsc_pvname":       "hdsc",
+        "dsta_pvname":       "dsta",
+    }
+
+    here = slac_db.config.package_data()
+    yaml_path = os.path.join(here, "klystron_metadata.yaml")
+    with open(yaml_path) as f:
+        raw = yaml.safe_load(f)
+
+    result = {}
+    for station, fields in raw.items():
+        overrides = {}
+        for key, val in fields.items():
+            if key == "description":
+                continue
+            if key in ("beamcode1", "beamcode2"):
+                bc = key  # e.g. "beamcode1"
+                for pv_field, pv_val in val.items():
+                    accessor = _PV_FIELD_TO_ACCESSOR.get(pv_field)
+                    if accessor is not None:
+                        overrides[f"{accessor}_{bc}"] = pv_val
+            elif key in _PV_FIELD_TO_ACCESSOR:
+                overrides[_PV_FIELD_TO_ACCESSOR[key]] = val or ""
+            else:
+                # passthrough (e.g. in_use)
+                overrides[key] = val
+        result[station] = overrides
+    return result
+
+
 def get_pmt_metadata(pmt_names: List[str] = []):
     # return a data structure of the form:
     # {
