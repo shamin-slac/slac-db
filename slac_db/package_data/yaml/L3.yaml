@@ -4353,6 +4353,23 @@ tcavs:
       rf_freq: 2856.0
       sum_l_meters: 446.761
       type: LCAV
+toroids:
+  IMBC2O:
+    controls_information:
+      PVs:
+        tmit: TORO:LI25:235:TMIT
+      control_name: TORO:LI25:235
+    metadata:
+      area: L3
+      beam_path:
+      - CU_ALINE
+      - CU_HTXI
+      - CU_HXR
+      - CU_HXTES
+      - CU_SFTH
+      - CU_SXR
+      sum_l_meters: 445.276
+      type: IMON
 wires:
   WS27644:
     controls_information:
@@ -4400,6 +4417,8 @@ wires:
       - CU_HXTES
       - CU_SFTH
       - CU_SXR
+      charge_toroids:
+      - BPM2
       default_detector: PMT29150:LI29
       detectors:
       - PMT29150:LI29
@@ -4483,6 +4502,8 @@ wires:
       - CU_HXTES
       - CU_SFTH
       - CU_SXR
+      charge_toroids:
+      - BPM2
       default_detector: PMT29150:LI29
       detectors:
       - PMT29150:LI29
@@ -4566,6 +4587,8 @@ wires:
       - CU_HXTES
       - CU_SFTH
       - CU_SXR
+      charge_toroids:
+      - BPM2
       default_detector: PMT29150:LI29
       detectors:
       - PMT29150:LI29
@@ -4649,6 +4672,8 @@ wires:
       - CU_HXTES
       - CU_SFTH
       - CU_SXR
+      charge_toroids:
+      - BPM2
       default_detector: PMT29150:LI29
       detectors:
       - PMT29150:LI29
