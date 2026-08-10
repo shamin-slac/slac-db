@@ -103,6 +103,7 @@ class _Parser:
                 yield (address, accessor)
 
         def _meta(device, pv_head, d_type):
+            override = self.accessor_overrides.get(device, {})
             for pv_tail in self.address_map.get(pv_head, [None]):
                 if pv_tail is None:
                     continue
@@ -114,44 +115,19 @@ class _Parser:
                         accessor_name=accessor,
                     )
                     for address, accessor in accessor_names
+                    if accessor not in override
                 ]
+            for accessor_name, cs_address in override.items():
+                if cs_address:
+                    yield PKDict(
+                        device_name=device,
+                        cs_address=cs_address,
+                        accessor_name=accessor_name,
+                    )
 
         self.accessor_map = slac_db.io.read_dict(_ACCESSOR_YAML)
         self.accessor_overrides = self.accessor_map.pop("_overrides", {})
         self.accessor_meta = list(_build())
-        self._apply_accessor_overrides()
-
-    def _apply_accessor_overrides(self):
-        """Apply per-device PV overrides from the _overrides block in accessor_names.yaml.
-
-        For special devices (injector klystrons, test stand, etc.) some accessors
-        must point to PVs that differ from the normal pattern-derived addresses.
-        This removes any existing accessor entries for the affected
-        (device_name, accessor_name) pairs and inserts the override values.
-        Empty-string PV values mean the accessor is absent and are skipped.
-        """
-        if not self.accessor_overrides:
-            return
-
-        to_remove = set()
-        to_add = []
-        for device_name, fields in self.accessor_overrides.items():
-            if device_name not in self.device_names:
-                continue
-            for accessor_name, cs_address in fields.items():
-                to_remove.add((device_name, accessor_name))
-                if cs_address:  # skip empty — means PV is absent
-                    to_add.append(PKDict(
-                        device_name=device_name,
-                        accessor_name=accessor_name,
-                        cs_address=cs_address,
-                    ))
-
-        self.accessor_meta = [
-            e for e in self.accessor_meta
-            if (e.device_name, e.accessor_name) not in to_remove
-        ]
-        self.accessor_meta.extend(to_add)
 
     def _address_map(self):
         """Create an address map where keys are PV heads
